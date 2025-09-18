@@ -6,36 +6,93 @@ using System.Collections.Generic;
 public class CalculatorManager : MonoBehaviour
 {
     public TextMeshProUGUI displayText;
-    private string input = "0";  
+    private string input = "0";
+    private bool justEvaluated = false;
 
     void Start()
     {
-        displayText.text = input; 
+        displayText.text = input;
     }
 
     public void OnButtonClick(string value)
     {
         if (value == "AC")
         {
-            input = "0";   
+            input = "0";
+            justEvaluated = false;
         }
         else if (value == "=")
         {
-            input = EvaluateExpression(input).ToString();
+            try
+            {
+                
+                if (IsOperator(input[input.Length - 1].ToString()))
+                    input = input.Substring(0, input.Length - 1);
+
+                input = EvaluateExpression(input).ToString();
+                justEvaluated = true; 
+            }
+            catch
+            {
+                input = "Error";
+                justEvaluated = true;
+            }
         }
         else
         {
            
-            if (input == "0")
-                input = value;
+            if (justEvaluated)
+            {
+                if (char.IsDigit(value[0]) || value == ".")
+                {
+                    input = value; 
+                }
+                else if (IsOperator(value))
+                {
+                    input += value; 
+                }
+                justEvaluated = false;
+            }
             else
-                input += value;
+            {
+                if (input == "0")
+                {
+                    if (value == "x" || value == "÷")
+                    {
+                        input = "0" + value;
+                    }
+                    else if (value == "+" || value == "-")
+                    {
+                        input = "0"; 
+                    }
+                    else
+                    {
+                        input = value;
+                    }
+                }
+                else
+                {
+                    string lastChar = input[input.Length - 1].ToString();
+
+                    if ((input == "0x" || input == "0÷") && (value == "+" || value == "-"))
+                    {
+                        input = "0";
+                    }
+                    else if (IsOperator(lastChar) && IsOperator(value))
+                    {
+                        input = input.Substring(0, input.Length - 1) + value;
+                    }
+                    else
+                    {
+                        input += value;
+                    }
+                }
+            }
         }
 
         displayText.text = input;
     }
 
-  
     double EvaluateExpression(string expr)
     {
         List<string> tokens = Tokenize(expr);
@@ -63,7 +120,6 @@ public class CalculatorManager : MonoBehaviour
             }
         }
 
-        
         while (ops.Count > 0)
         {
             double b = numbers.Pop();
@@ -84,10 +140,9 @@ public class CalculatorManager : MonoBehaviour
         {
             char c = expr[i];
 
-            // Handle negative or positive at start or after another operator
             if ((c == '-' || c == '+') && (i == 0 || IsOperator(expr[i - 1].ToString())))
             {
-                number += c; // attach sign to number
+                number += c;
             }
             else if (char.IsDigit(c) || c == '.')
             {
@@ -109,7 +164,6 @@ public class CalculatorManager : MonoBehaviour
 
         return tokens;
     }
-
 
     bool IsOperator(string c)
     {
